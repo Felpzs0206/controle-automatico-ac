@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(controle_automatico_ac controle_automatico_ac.c )
+add_executable(controle_automatico_ac controle_automatico_ac.c lib/ssd1306.c)
 
 pico_set_program_name(controle_automatico_ac "controle_automatico_ac")
 pico_set_program_version(controle_automatico_ac "0.1")
@@ -44,9 +44,11 @@ pico_set_program_version(controle_automatico_ac "0.1")
 pico_enable_stdio_uart(controle_automatico_ac 1)
 pico_enable_stdio_usb(controle_automatico_ac 0)
 
+pico_generate_pio_header(controle_automatico_ac ${CMAKE_CURRENT_LIST_DIR}/ws2812.pio OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/generated)
+
 # Add the standard library to the build
 target_link_libraries(controle_automatico_ac
-        pico_stdlib hardware_adc hardware_i2c)
+        pico_stdlib hardware_adc hardware_i2c hardware_pio)
 
 # Add the standard include files to the build
 target_include_directories(controle_automatico_ac PRIVATE
