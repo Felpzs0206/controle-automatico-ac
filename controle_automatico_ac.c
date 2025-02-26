@@ -42,7 +42,7 @@ bool temp_sensor_state = true;
 
 const uint32_t debounce_time = 200; // Tempo de debounce em ms
 
-// Buffer para armazenar quais LEDs estão ligados matriz 5x5
+// Buffer para armazenar o estado do led verde
 bool led_buffer_green[NUM_PIXELS] = {
     0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 
@@ -50,7 +50,7 @@ bool led_buffer_green[NUM_PIXELS] = {
     0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0
 };
-
+// Buffer para armazenar o estado do led azul
 bool led_buffer_blue[NUM_PIXELS] = {
     0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 
@@ -58,7 +58,7 @@ bool led_buffer_blue[NUM_PIXELS] = {
     0, 0, 0, 0, 0, 
     0, 0, 1, 0, 0
 };
-
+// Buffer para armazenar o estado do led vermelho
 bool led_buffer_red[NUM_PIXELS] = {
     0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 
@@ -68,14 +68,12 @@ bool led_buffer_red[NUM_PIXELS] = {
 };
 
 // Função para enviar um pixel para a matriz de leds
-static inline void put_pixel(uint32_t pixel_grb)
-{
+static inline void put_pixel(uint32_t pixel_grb){
     pio_sm_put_blocking(pio0, 0, pixel_grb << 8u);
 }
 
 // Função para criar um pixel com as cores RGB
-static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b)
-{
+static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b){
     return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
 }
 
@@ -120,7 +118,7 @@ void button_irq_handler(uint gpio, uint32_t events) {
     update_led_matrix(); // Atualiza a matriz após qualquer mudança
 }
 
-float convert_adc_to_temperature(uint16_t adc_value) {
+float convert_adc_to_temperature(uint16_t adc_value) { // Função para converter o valor do ADC para temperatura
     return ((adc_value - 2048) / 2047.0) * 100.0;
 }
 
@@ -130,12 +128,12 @@ int main(){
     int sm = 0;
     uint offset = pio_add_program(pio, &ws2812_program);
 
-    ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, IS_RGBW);
+    ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, IS_RGBW); // Inicializa a matriz de leds
     stdio_init_all();
 
-    adc_init();
-    adc_gpio_init(JOY_PIN);
-    adc_select_input(0);
+    adc_init(); // Inicializa o ADC
+    adc_gpio_init(JOY_PIN); // Inicializa o pino do joystick
+    adc_select_input(0); // Seleciona o canal 0 do ADC
 
     i2c_init(I2C_PORT, 400 * 1000);
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C); // Set the GPIO pin function to I2C
@@ -172,36 +170,36 @@ int main(){
 
     update_led_matrix(); // Atualiza a matriz de leds
     while (true){
-        uint16_t joy_value = adc_read();
-        float temperature = convert_adc_to_temperature(joy_value);
-        printf("Temperatura: %.2f\n", temperature);
+        uint16_t joy_value = adc_read(); // Lê o valor do joystick
+        float temperature = convert_adc_to_temperature(joy_value); // Converte o valor do joystick para temperatura
+        printf("Temperatura: %.2f\n", temperature); // ~ teste
 
-        if(temperature < 27){
+        if(temperature < 27){ // Se a temperatura for menor que 27 graus
             temp_sensor_state = true;
         } else {
-            temp_sensor_state = false;
+            temp_sensor_state = false; 
         }
 
-        led_buffer_red[17] = temp_sensor_state;
-        update_led_matrix();
-        ssd1306_fill(&ssd, false);
-        char temp_str[20];
-        snprintf(temp_str, sizeof(temp_str), "Temp: %.1fC", temperature);
-        ssd1306_draw_string(&ssd, temp_str, 10, 10);
+        led_buffer_red[17] = temp_sensor_state; // Grava o estado do sensor de temperatura
+        update_led_matrix(); // Atualiza a matriz de leds
+        ssd1306_fill(&ssd, false); // Limpa o display
+        char temp_str[20]; // String para armazenar a temperatura
+        snprintf(temp_str, sizeof(temp_str), "Temp: %.1fC", temperature);  // Formata a temperatura
+        ssd1306_draw_string(&ssd, temp_str, 10, 10); // Escreve a temperatura no display
 
-        if (temp_sensor_state && !window_sensor_state) {
+        if (temp_sensor_state && !window_sensor_state) { // Se a temperatura estiver baixa e a janela estiver aberta
             ssd1306_draw_string(&ssd, "Abra a janela", 10, 30);
-            gpio_put(BLUE_LED, 0);
-        } else if (!temp_sensor_state && window_sensor_state){
+            gpio_put(BLUE_LED, 0); // Apaga o LED Azul
+        } else if (!temp_sensor_state && window_sensor_state){ // Se a temperatura estiver alta e a janela estiver fechada
             ssd1306_draw_string(&ssd, "Feche a janela", 10, 30);
-            gpio_put(BLUE_LED, 0);
-        } else if (!temp_sensor_state && !window_sensor_state && !presence_sensor_state){
-            gpio_put(BLUE_LED, 1);
+            gpio_put(BLUE_LED, 0); // Apaga o LED Azul
+        } else if (!temp_sensor_state && !window_sensor_state && !presence_sensor_state){ // Se a temperatura estiver alta, a janela estiver fechada e não houver presença
+            gpio_put(BLUE_LED, 1); // Acende o LED Azul
         } else {
-            gpio_put(BLUE_LED, 0);
+            gpio_put(BLUE_LED, 0); // Apaga o LED Azul
         }
 
-        ssd1306_send_data(&ssd);
+        ssd1306_send_data(&ssd); // Envia os dados para o display
         sleep_ms(500);
     }
 }
